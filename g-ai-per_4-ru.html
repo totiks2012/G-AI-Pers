@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор запросов для ИИ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .text-area-container {
+            position: relative;
+        }
+        .text-area-container textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .preset-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .preset-item:hover {
+            background-color: #e5e7eb;
+            cursor: pointer;
+        }
+        .preset-item.active {
+            background-color: #d1d5db;
+        }
+        .radio-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .section-content {
+            display: none;
+        }
+        .section-content.active {
+            display: block;
+        }
+        .scrollable-content {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-content h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .modal-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        .modal-content li {
+            margin-bottom: 1rem;
+        }
+        .modal-content li strong {
+            color: #1f2937;
+        }
+        .modal-close {
+            background-color: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            float: right;
+        }
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .presets-panel {
+                width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 max-w-7xl">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gray-200 p-4 flex flex-wrap gap-2 items-center">
+                <h1 class="text-xl font-bold mr-4">Генератор запросов для ИИ</h1>
+                <div class="flex flex-wrap gap-2">
+                    <button id="main-btn" class="btn-section bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-home mr-2"></i>Основной запрос
+                    </button>
+                    <button id="settings-btn" class="btn-section bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-cog mr-2"></i>Настройки
+                    </button>
+                    <button id="exceptions-btn" class="btn-section bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-ban mr-2"></i>Исключения
+                    </button>
+                    <button id="actions-btn" class="btn-section bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-bolt mr-2"></i>Действия
+                    </button>
+                    <button id="references-btn" class="btn-section bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-book mr-2"></i>Референсы
+                    </button>
+                    <button id="style-btn" class="btn-section bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-paint-brush mr-2"></i>Запрос стиля
+                    </button>
+                </div>
+                <div class="ml-auto flex gap-2">
+                    <button id="help-btn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-question-circle mr-2"></i>Справка
+                    </button>
+                    <button id="toggle-presets" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-list mr-2"></i>Пресеты
+                    </button>
+                    <button id="save-preset" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-save mr-2"></i>Сохранить пресет
+                    </button>
+                    <button id="save-to-disk" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-download mr-2"></i>Сохранить на диск
+                    </button>
+                    <button id="load-from-disk" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">
+                        <i class="fas fa-upload mr-2"></i>Загрузить пресет
+                    </button>
+                    <input type="file" id="load-preset-input" accept=".txt" class="hidden">
+                </div>
+            </div>
+
+            <!-- Area Selection -->
+            <div class="bg-gray-100 p-3 border-b">
+                <div class="flex items-center gap-4">
+                    <span class="font-bold">Текущая область:</span>
+                    <div class="flex gap-2">
+                        <button id="area1-btn" class="area-btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded">Область 1</button>
+                        <button id="area2-btn" class="area-btn bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded">Область 2</button>
+                    </div>
+                    <span id="current-area" class="ml-4 font-semibold">Область 1</span>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex main-container">
+                <!-- Content Panel -->
+                <div class="flex-1 p-4">
+                    <div class="scrollable-content">
+                        <!-- Main Request Section -->
+                        <div id="main-section" class="section-content active">
+                            <h2 class="text-lg font-bold mb-2"><i class="fas fa-home mr-2"></i>Основной запрос</h2>
+                            <div class="text-area-container mb-4">
+                                <textarea id="main-request" class="w-full p-2 border rounded" placeholder="Введите ваш основной запрос для ИИ..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Settings Section -->
+                        <div id="settings-section" class="section-content">
+                            <h2 class="text-lg font-bold mb-4"><i class="fas fa-cog mr-2"></i>Настройки</h2>
+                            <div id="settings-container" class="space-y-4">
+                                <!-- Settings will be dynamically added here -->
+                            </div>
+                        </div>
+
+                        <!-- Exceptions Section -->
+                        <div id="exceptions-section" class="section-content">
+                            <h2 class="text-lg font-bold mb-2"><i class="fas fa-ban mr-2"></i>Исключения</h2>
+                            <div class="text-area-container mb-4">
+                                <textarea id="exceptions" class="w-full p-2 border rounded" placeholder="Введите исключения здесь..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Actions Section -->
+                        <div id="actions-section" class="section-content">
+                            <h2 class="text-lg font-bold mb-2"><i class="fas fa-bolt mr-2"></i>Действия</h2>
+                            <div class="text-area-container mb-4">
+                                <textarea id="actions" class="w-full p-2 border rounded" placeholder="Введите действия здесь..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- References Section -->
+                        <div id="references-section" class="section-content">
+                            <h2 class="text-lg font-bold mb-2"><i class="fas fa-book mr-2"></i>Референсы</h2>
+                            <div class="text-area-container mb-4">
+                                <textarea id="references" class="w-full p-2 border rounded" placeholder="Введите референсы здесь..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Style Section -->
+                        <div id="style-section" class="section-content">
+                            <h2 class="text-lg font-bold mb-2"><i class="fas fa-paint-brush mr-2"></i>Запрос стиля</h2>
+                            <div class="text-area-container mb-4">
+                                <textarea id="style" class="w-full p-2 border rounded" placeholder="Введите запрос стиля здесь..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets Panel (initially hidden) -->
+                <div id="presets-panel" class="presets-panel w-80 bg-gray-100 border-l p-4 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold"><i class="fas fa-list mr-2"></i>Пресеты</h2>
+                        <button id="refresh-presets" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="preset-list bg-white rounded border">
+                        <ul id="preset-list" class="divide-y">
+                            <!-- Presets will be loaded here -->
+                        </ul>
+                    </div>
+                    <div class="mt-4">
+                        <button id="delete-preset" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full">
+                            <i class="fas fa-trash mr-2"></i>Удалить выбранный
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <button id="close-help-modal" class="modal-close">Закрыть</button>
+            <h2>Справка по параметрам</h2>
+            <ul id="parameter-descriptions"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentArea = 1;
+        let selectedPreset = null;
+        let presetsCache = null; // [ОПТИМИЗАЦИЯ] Кэш для пресетов
+
+        // Cache for both areas
+        const cache = {
+            1: {
+                main: "",
+                exceptions: "",
+                actions: "",
+                references: "",
+                style: "",
+                settings: {}
+            },
+            2: {
+                main: "",
+                exceptions: "",
+                actions: "",
+                references: "",
+                style: "",
+                settings: {}
+            }
+        };
+
+        // Default parameters
+        const parameters = [
+            "Многослойный",
+            "Иносказательный",
+            "Монументальный",
+            "Минималистичный",
+            "Контрастный",
+            "Динамичный",
+            "Ироничный",
+            "Органичный",
+            "Клиничный",
+            "Абстрактный",
+            "Прагматичный",
+            "Катарсический",
+            "Парадоксальный",
+            "Эллиптичный",
+            "Кинетический",
+            "Рефлексивный",
+            "Гротескный",
+            "Деструктивный",
+            "Символический",
+            "Тектонический",
+            "Хаотичный",
+            "Тактильный",
+            "Анахроничный",
+            "Тихий"
+        ];
+
+        // Parameter descriptions
+        const parameterDescriptions = {
+            "Многослойный": "Создает сложные, многоуровневые структуры с переплетением идей, деталей или визуальных элементов.",
+            "Иносказательный": "Использует метафоры, аллегории и скрытые смыслы для передачи идей косвенно.",
+            "Монументальный": "Придает результату величественность, масштабность и эпичность, подчеркивая значимость.",
+            "Минималистичный": "Фокусируется на простоте, лаконичности и устранении лишних деталей.",
+            "Контрастный": "Подчеркивает различия между элементами, создавая яркие противопоставления.",
+            "Динамичный": "Добавляет ощущение движения, энергии и активного развития сюжета или композиции.",
+            "Ироничный": "Включает элементы сарказма, юмора или неожиданных поворотов для легкой насмешки.",
+            "Органичный": "Создает естественные, гармоничные и плавные формы, вдохновленные природой.",
+            "Клиничный": "Придает холодный, стерильный и объективный тон, лишенный эмоций.",
+            "Абстрактный": "Фокусируется на неконкретных, концептуальных или символических образах и идеях.",
+            "Прагматичный": "Ориентирован на практичность, функциональность и достижение конкретных целей.",
+            "Катарсический": "Вызывает сильные эмоциональные переживания, ведущие к очищению или облегчению.",
+            "Парадоксальный": "Сочетает противоречивые элементы, создавая неожиданные и интригующие эффекты.",
+            "Эллиптичный": "Использует недосказанность и пропуски, оставляя пространство для интерпретации.",
+            "Кинетический": "Подчеркивает движение, ритм и физическую энергию в композиции или повествовании.",
+            "Рефлексивный": "Стимулирует размышления, самоанализ и исследование внутренних мотивов.",
+            "Гротескный": "Сочетает уродливое и комичное, создавая преувеличенные или шокирующие образы.",
+            "Деструктивный": "Разрушает привычные структуры, подчеркивая хаос или распад.",
+            "Символический": "Использует символы и образы для передачи глубоких идей или концепций.",
+            "Тектонический": "Создает ощущение устойчивости, монументальной структуры и сбалансированной формы.",
+            "Хаотичный": "Подчеркивает беспорядок, случайность и непредсказуемость в композиции.",
+            "Тактильный": "Фокусируется на текстурах и ощущениях, вызывая желание прикоснуться.",
+            "Анахроничный": "Смешивает элементы разных эпох, создавая вне-временной эффект.",
+            "Тихий": "Придает спокойный, сдержанный и умиротворяющий тон, избегая громкости."
+        };
+
+        // Radio options
+        const levels = ["minimal", "below average", "average", "above average", "highest"];
+
+        // DOM elements
+        const mainRequest = document.getElementById('main-request');
+        const exceptions = document.getElementById('exceptions');
+        const actions = document.getElementById('actions');
+        const references = document.getElementById('references');
+        const style = document.getElementById('style');
+        const settingsContainer = document.getElementById('settings-container');
+        const currentAreaDisplay = document.getElementById('current-area');
+        const presetList = document.getElementById('preset-list');
+        const presetsPanel = document.getElementById('presets-panel');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpModal = document.getElementById('close-help-modal');
+        const parameterDescriptionsList = document.getElementById('parameter-descriptions');
+
+        // [ОПТИМИЗАЦИЯ] Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialize the application
+        function init() {
+            createSettings();
+            setupEventListeners();
+            updatePresetList();
+            showSection('main');
+            populateHelpModal();
+        }
+
+        // Populate help modal with parameter descriptions
+        function populateHelpModal() {
+            parameterDescriptionsList.innerHTML = '';
+            parameters.forEach(param => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${param}:</strong> ${parameterDescriptions[param] || 'Описание отсутствует'}`;
+                parameterDescriptionsList.appendChild(li);
+            });
+        }
+
+        // Create settings controls
+        function createSettings() {
+            settingsContainer.innerHTML = '';
+            parameters.forEach(param => {
+                const settingDiv = document.createElement('div');
+                settingDiv.className = 'setting-item p-2 bg-gray-50 rounded';
+                const label = document.createElement('label');
+                label.className = 'block font-medium mb-1';
+                label.textContent = param;
+                const radioGroup = document.createElement('div');
+                radioGroup.className = 'radio-group';
+                levels.forEach(level => {
+                    const radioId = `${param}-${level}`;
+                    const radioOption = document.createElement('div');
+                    radioOption.className = 'radio-option';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.id = radioId;
+                    radio.name = param;
+                    radio.value = level;
+                    radio.className = 'mr-1';
+                    if (level === 'average') {
+                        radio.checked = true;
+                    }
+                    if (!cache[1].settings[param]) {
+                        cache[1].settings[param] = 'average';
+                        cache[2].settings[param] = 'average';
+                    }
+                    radio.addEventListener('change', () => {
+                        cache[currentArea].settings[param] = level;
+                    });
+                    const radioLabel = document.createElement('label');
+                    radioLabel.htmlFor = radioId;
+                    const translatedLevel = {
+                        "minimal": "минимальный",
+                        "below average": "ниже среднего",
+                        "average": "средний",
+                        "above average": "выше среднего",
+                        "highest": "высший"
+                    }[level] || level;
+                    radioLabel.textContent = translatedLevel;
+                    radioLabel.className = 'text-sm';
+                    radioOption.appendChild(radio);
+                    radioOption.appendChild(radioLabel);
+                    radioGroup.appendChild(radioOption);
+                });
+                settingDiv.appendChild(label);
+                settingDiv.appendChild(radioGroup);
+                settingsContainer.appendChild(settingDiv);
+            });
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Section buttons
+            document.querySelectorAll('.btn-section').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.id.replace('-btn', '');
+                    showSection(section);
+                    document.querySelectorAll('.btn-section').forEach(b => {
+                        b.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                        b.classList.add('bg-gray-500', 'hover:bg-gray-600');
+                    });
+                    this.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                    this.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                });
+            });
+            // Area buttons
+            document.querySelectorAll('.area-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const area = parseInt(this.id.replace('area', '').replace('-btn', ''));
+                    switchArea(area);
+                });
+            });
+            // Presets toggle
+            document.getElementById('toggle-presets').addEventListener('click', togglePresets);
+            // Save preset
+            document.getElementById('save-preset').addEventListener('click', savePreset);
+            // Save to disk
+            document.getElementById('save-to-disk').addEventListener('click', savePresetToDisk);
+            // Load from disk
+            document.getElementById('load-from-disk').addEventListener('click', () => {
+                document.getElementById('load-preset-input').click();
+            });
+            document.getElementById('load-preset-input').addEventListener('change', loadPresetFromFile);
+            // Refresh presets
+            document.getElementById('refresh-presets').addEventListener('click', updatePresetList);
+            // Delete preset
+            document.getElementById('delete-preset').addEventListener('click', deletePreset);
+            // Help button
+            document.getElementById('help-btn').addEventListener('click', () => {
+                helpModal.style.display = 'flex';
+            });
+            // Close help modal
+            closeHelpModal.addEventListener('click', () => {
+                helpModal.style.display = 'none';
+            });
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) {
+                    helpModal.style.display = 'none';
+                }
+            });
+            // [ОПТИМИЗАЦИЯ] Text area changes with debounce
+            const debouncedUpdate = {
+                main: debounce(() => cache[currentArea].main = mainRequest.value, 300),
+                exceptions: debounce(() => cache[currentArea].exceptions = exceptions.value, 300),
+                actions: debounce(() => cache[currentArea].actions = actions.value, 300),
+                references: debounce(() => cache[currentArea].references = references.value, 300),
+                style: debounce(() => cache[currentArea].style = style.value, 300)
+            };
+            mainRequest.addEventListener('input', debouncedUpdate.main);
+            exceptions.addEventListener('input', debouncedUpdate.exceptions);
+            actions.addEventListener('input', debouncedUpdate.actions);
+            references.addEventListener('input', debouncedUpdate.references);
+            style.addEventListener('input', debouncedUpdate.style);
+            // Preset list click
+            presetList.addEventListener('click', function(e) {
+                if (e.target.tagName === 'LI') {
+                    document.querySelectorAll('#preset-list li').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    e.target.classList.add('active');
+                    selectedPreset = e.target.textContent;
+                    if (e.detail === 2) {
+                        loadPreset(e.target.textContent);
+                    }
+                }
+            });
+        }
+
+        // Show selected section
+        function showSection(section) {
+            document.querySelectorAll('.section-content').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(`${section}-section`).classList.add('active');
+        }
+
+        // Switch between areas
+        function switchArea(area) {
+            cache[currentArea].main = mainRequest.value;
+            cache[currentArea].exceptions = exceptions.value;
+            cache[currentArea].actions = actions.value;
+            cache[currentArea].references = references.value;
+            cache[currentArea].style = style.value;
+            currentArea = area;
+            currentAreaDisplay.textContent = `Область ${currentArea}`;
+            document.querySelectorAll('.area-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                btn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            });
+            const activeBtn = document.getElementById(`area${area}-btn`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                activeBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+            }
+            mainRequest.value = cache[area].main || "";
+            exceptions.value = cache[area].exceptions || "";
+            actions.value = cache[area].actions || "";
+            references.value = cache[area].references || "";
+            style.value = cache[area].style || "";
+            parameters.forEach(param => {
+                const value = cache[area].settings[param] || "average";
+                const radio = document.querySelector(`input[name="${param}"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+            });
+        }
+
+        // Toggle presets panel visibility
+        function togglePresets() {
+            presetsPanel.classList.toggle('hidden');
+        }
+
+        // [ОПТИМИЗАЦИЯ] Update preset list using cache
+        function updatePresetList() {
+            presetList.innerHTML = '';
+            // Initialize cache if not already set
+            if (presetsCache === null) {
+                presetsCache = JSON.parse(localStorage.getItem('ai-presets')) || {};
+            }
+            if (Object.keys(presetsCache).length === 0) {
+                const li = document.createElement('li');
+                li.className = 'p-2 text-gray-500';
+                li.textContent = 'Пресеты не найдены';
+                presetList.appendChild(li);
+            } else {
+                Object.keys(presetsCache).forEach(presetName => {
+                    const li = document.createElement('li');
+                    li.className = 'p-2 preset-item hover:bg-gray-100';
+                    li.textContent = presetName;
+                    presetList.appendChild(li);
+                });
+            }
+        }
+
+        // Save preset
+        function savePreset() {
+            const presetName = prompt('Введите имя для этого пресета:');
+            if (!presetName) return;
+            const presetData = {
+                main: mainRequest.value,
+                exceptions: exceptions.value,
+                actions: actions.value,
+                references: references.value,
+                style: style.value,
+                settings: {}
+            };
+            parameters.forEach(param => {
+                const selectedRadio = document.querySelector(`input[name="${param}"]:checked`);
+                if (selectedRadio) {
+                    presetData.settings[param] = selectedRadio.value;
+                }
+            });
+            // Update localStorage and cache
+            presetsCache = presetsCache || {};
+            presetsCache[presetName] = presetData;
+            localStorage.setItem('ai-presets', JSON.stringify(presetsCache));
+            updatePresetList();
+            alert(`Пресет "${presetName}" успешно сохранен!`);
+        }
+
+        // Save preset to disk as TXT file
+        function savePresetToDisk() {
+            const presetName = prompt('Введите имя для файла пресета:');
+            if (!presetName) return;
+            const presetData = {
+                main: mainRequest.value,
+                exceptions: exceptions.value,
+                actions: actions.value,
+                references: references.value,
+                style: style.value,
+                settings: {}
+            };
+            parameters.forEach(param => {
+                const selectedRadio = document.querySelector(`input[name="${param}"]:checked`);
+                if (selectedRadio) {
+                    presetData.settings[param] = selectedRadio.value;
+                }
+            });
+            let textContent = "Основной запрос:\n" + (presetData.main || "") + "\n\n";
+            textContent += "<Сеттинг>:\n";
+            parameters.forEach(param => {
+                const value = presetData.settings[param] || "average";
+                const translatedValue = {
+                    "minimal": "минимальный",
+                    "below average": "ниже_среднего",
+                    "average": "средний",
+                    "above average": "выше_среднего",
+                    "highest": "высший"
+                }[value] || value;
+                textContent += `${param}: ${translatedValue}\n`;
+            });
+            textContent += "\n";
+            textContent += "<Исключения>:\n" + (presetData.exceptions || "") + "\n\n";
+            textContent += "<Действия>:\n" + (presetData.actions || "") + "\n\n";
+            textContent += "<Референсы>:\n" + (presetData.references || "") + "\n\n";
+            textContent += "<Запрос стиля>:\n" + (presetData.style || "");
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${presetName}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            alert(`Пресет "${presetName}" успешно сохранен на диск!`);
+        }
+
+        // Load preset from file
+        function loadPresetFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const presetData = {
+                        main: "",
+                        exceptions: "",
+                        actions: "",
+                        references: "",
+                        style: "",
+                        settings: {}
+                    };
+                    const sections = content.split(/\n\n(?=<|\w)/);
+                    sections.forEach(section => {
+                        if (section.startsWith('Основной запрос:')) {
+                            presetData.main = section.replace('Основной запрос:\n', '').trim();
+                        } else if (section.startsWith('<Сеттинг>:')) {
+                            const settingsLines = section.replace('<Сеттинг>:\n', '').split('\n');
+                            settingsLines.forEach(line => {
+                                const match = line.match(/^(.+?):\s*(.+)$/);
+                                if (match) {
+                                    const param = match[1].trim();
+                                    let value = match[2].trim();
+                                    value = value.replace(/_/g, ' ');
+                                    if (parameters.includes(param)) {
+                                        const reverseTranslatedValue = {
+                                            "минимальный": "minimal",
+                                            "ниже среднего": "below average",
+                                            "средний": "average",
+                                            "выше среднего": "above average",
+                                            "высший": "highest"
+                                        }[value] || value;
+                                        if (levels.includes(reverseTranslatedValue)) {
+                                            presetData.settings[param] = reverseTranslatedValue;
+                                        }
+                                    }
+                                }
+                            });
+                        } else if (section.startsWith('<Исключения>:')) {
+                            presetData.exceptions = section.replace('<Исключения>:\n', '').trim();
+                        } else if (section.startsWith('<Действия>:')) {
+                            presetData.actions = section.replace('<Действия>:\n', '').trim();
+                        } else if (section.startsWith('<Референсы>:')) {
+                            presetData.references = section.replace('<Референсы>:\n', '').trim();
+                        } else if (section.startsWith('<Запрос стиля>:')) {
+                            presetData.style = section.replace('<Запрос стиля>:\n', '').trim();
+                        }
+                    });
+                    cache[currentArea].main = presetData.main;
+                    cache[currentArea].exceptions = presetData.exceptions;
+                    cache[currentArea].actions = presetData.actions;
+                    cache[currentArea].references = presetData.references;
+                    cache[currentArea].style = presetData.style;
+                    parameters.forEach(param => {
+                        cache[currentArea].settings[param] = presetData.settings[param] || cache[currentArea].settings[param] || "average";
+                    });
+                    mainRequest.value = presetData.main;
+                    exceptions.value = presetData.exceptions;
+                    actions.value = presetData.actions;
+                    references.value = presetData.references;
+                    style.value = presetData.style;
+                    parameters.forEach(param => {
+                        const value = cache[currentArea].settings[param] || "average";
+                        const radio = document.querySelector(`input[name="${param}"][value="${value}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                        }
+                    });
+                    showSection('main');
+                    document.querySelectorAll('.btn-section').forEach(b => {
+                        b.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                        b.classList.add('bg-gray-500', 'hover:bg-gray-600');
+                    });
+                    document.getElementById('main-btn').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                    document.getElementById('main-btn').classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    alert('Пресет успешно загружен!');
+                } catch (error) {
+                    alert('Ошибка при загрузке пресета: неверный формат файла.');
+                    console.error('Error loading preset:', error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Load preset from localStorage
+        function loadPreset(presetName) {
+            const presetData = presetsCache[presetName];
+            if (!presetData) {
+                alert('Пресет не найден!');
+                return;
+            }
+            cache[currentArea].main = presetData.main || "";
+            cache[currentArea].exceptions = presetData.exceptions || "";
+            cache[currentArea].actions = presetData.actions || "";
+            cache[currentArea].references = presetData.references || "";
+            cache[currentArea].style = presetData.style || "";
+            parameters.forEach(param => {
+                cache[currentArea].settings[param] = presetData.settings[param] || cache[currentArea].settings[param] || "average";
+            });
+            mainRequest.value = cache[currentArea].main;
+            exceptions.value = cache[currentArea].exceptions;
+            actions.value = cache[currentArea].actions;
+            references.value = cache[currentArea].references;
+            style.value = cache[currentArea].style;
+            parameters.forEach(param => {
+                const value = cache[currentArea].settings[param] || "average";
+                const radio = document.querySelector(`input[name="${param}"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+            });
+            showSection('main');
+            document.querySelectorAll('.btn-section').forEach(b => {
+                b.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                b.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            });
+            document.getElementById('main-btn').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            document.getElementById('main-btn').classList.add('bg-blue-500', 'hover:bg-blue-600');
+        }
+
+        // Delete preset
+        function deletePreset() {
+            if (!selectedPreset) {
+                alert('Пожалуйста, выберите пресет для удаления');
+                return;
+            }
+            if (confirm(`Вы уверены, что хотите удалить пресет "${selectedPreset}"?`)) {
+                delete presetsCache[selectedPreset];
+                localStorage.setItem('ai-presets', JSON.stringify(presetsCache));
+                updatePresetList();
+                selectedPreset = null;
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
