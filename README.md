@@ -27,16 +27,8 @@ this tool streamlines the process and saves your configurations for reuse.
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/totiks2012/G-AI-Pers.git
 
-Navigate to the project folder:
-bash
-
-cd G-AI-Pers
-
-Open one of the following files in a web browser (no server required):
+Dowload and open one of the following files in a web browser (no server required):
 For English: g-ai-per_4-en.html
 
 For Russian: g-ai-per_4-ru.html
