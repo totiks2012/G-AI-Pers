@@ -87,8 +87,7 @@ Contributions are welcome! Feel free to submit issues or pull requests.
 For major changes, please open an issue first to discuss your ideas.
 Contact
 GitHub: totiks2012
-Demo
-[Insert link to live demo, e.g., https://totiks2012.github.io/G-AI-Pers/g-ai-per_4-en.html]
+
 
 ---
 
@@ -166,36 +165,6 @@ GNU General Public License v3.0 (см. файл LICENSE)
 
 Контакты
 GitHub: totiks2012
-
-Демо
-Демонстрационная версия
-
-Изменения включают:
-
-Полный перевод всех интерфейсных элементов без дублирования на английский
-
-Единообразное оформление списков и команд
-
-Корректное форматирование Markdown
-
-Естественные для русского языка формулировки
-
-Сохранение всех технических терминов (prompt, preset) в их общепринятой транслитерации
-
-CSS3 (Tailwind CSS)
-
-JavaScript
-
-Font Awesome (иконки)
-
-Лицензия
-GNU General Public License v3.0 (LICENSE)
-Как внести вклад
-Приветствуются любые улучшения! Пожалуйста, создавайте issues или pull requests. Для крупных изменений сначала откройте issue для обсуждения.
-Контакты
-GitHub: totiks2012
-Демо
-[Вставьте ссылку на демо, например, https://totiks2012.github.io/G-AI-Pers/g-ai-per_4-ru.html]
 
 
    
