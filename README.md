@@ -94,7 +94,6 @@ Demo
 
 ### README.ru.md (на русском)
 
-```
 # G-AI-Pers
 
 Установка
