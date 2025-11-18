@@ -1,4 +1,9 @@
-# G-AI-Pers eng version
+# This version is very outdated, its code is terrible, and if it did anything, it was not to the extent that I expected from it. Yes, this program helped me a lot in its
+time, even in its current form, but time moves on. There is a version with a completely different operating logic, a much better one, see here: https://github.com/totiks2012/The-Alchemist-of-Narratives
+
+# Эта версия сильно устарела, её код ужасен, и если она и что то делала, то не в той степени моих ожиданий от неё, да эта программа мне в своё время сильно помогла, даже в том виде какая она есть, но время это движение, есть версия с совершено другой логикой работы, сильно лучще смотрите тут : https://github.com/totiks2012/The-Alchemist-of-Narratives
+
+## G-AI-Pers eng version
 
 A lightweight, web-based tool for creating, customizing, and saving AI prompts. 
 Designed for developers, designers, and content creators to generate structured 
